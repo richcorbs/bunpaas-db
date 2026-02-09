@@ -9,6 +9,8 @@ export function getDb(env = {}) {
   if (!sql) {
     const url = env.DATABASE_URL || process.env.DATABASE_URL || DEFAULT_URL;
     sql = new SQL(url);
+    // Initialize schema on first connection
+    initSchema(env).catch(err => console.error("Schema init error:", err));
   }
   return sql;
 }
