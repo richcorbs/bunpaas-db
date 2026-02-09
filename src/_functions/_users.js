@@ -14,7 +14,7 @@ export async function post(req) {
   }
 
   const password_hash = new Bun.CryptoHasher("sha256").update(password).digest("hex");
-  const sql = getDb();
+  const sql = await getDb();
 
   try {
     const [user] = await sql`

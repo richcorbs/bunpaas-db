@@ -13,7 +13,7 @@ export async function post(req) {
     return { status: 400, body: { error: "Name is required" } };
   }
 
-  const sql = getDb(req.env);
+  const sql = await getDb(req.env);
 
   const [tenant] = await sql`
     INSERT INTO tenants (name) VALUES (${name.trim()}) RETURNING id, name, created_at
@@ -43,7 +43,7 @@ export async function get(req) {
   const denied = requireWrite(auth);
   if (denied) return denied;
 
-  const sql = getDb();
+  const sql = await getDb();
   const tokens = await sql`
     SELECT token, can_read, can_write, created_at
     FROM api_tokens

@@ -12,7 +12,7 @@ export async function post(req) {
   }
 
   const password_hash = new Bun.CryptoHasher("sha256").update(password).digest("hex");
-  const sql = getDb();
+  const sql = await getDb();
 
   const rows = await sql`
     SELECT id, tenant_id, email, active, created_at

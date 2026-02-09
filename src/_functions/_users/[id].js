@@ -15,7 +15,7 @@ export async function patch(req) {
   }
 
   const password_hash = new Bun.CryptoHasher("sha256").update(password).digest("hex");
-  const sql = getDb();
+  const sql = await getDb();
 
   const rows = await sql`
     UPDATE _users SET password_hash = ${password_hash}
@@ -37,7 +37,7 @@ export async function del(req) {
   if (denied) return denied;
 
   const { id } = req.params;
-  const sql = getDb();
+  const sql = await getDb();
 
   const rows = await sql`
     DELETE FROM _users WHERE tenant_id = ${auth.tenant_id} AND id = ${id} RETURNING id

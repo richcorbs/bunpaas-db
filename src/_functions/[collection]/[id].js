@@ -10,7 +10,7 @@ export async function get(req) {
   if (denied) return denied;
 
   const { collection, id } = req.params;
-  const sql = getDb();
+  const sql = await getDb();
 
   const rows = await sql`
     SELECT * FROM items
@@ -35,7 +35,7 @@ export async function post(req) {
 
   const { collection, id } = req.params;
   const { parentId, ownerId, orderKey, data = {} } = req.body || {};
-  const sql = getDb();
+  const sql = await getDb();
 
   const [item] = await sql.unsafe(
     `INSERT INTO items (tenant_id, collection, parent_id, owner_id, order_key, data)
@@ -55,7 +55,7 @@ export async function put(req) {
 
   const { collection, id } = req.params;
   const { parentId, ownerId, orderKey, data = {} } = req.body || {};
-  const sql = getDb();
+  const sql = await getDb();
 
   const rows = await sql.unsafe(
     `UPDATE items SET parent_id = $4, owner_id = $5, order_key = $6, data = $7, updated_at = now()
@@ -79,7 +79,7 @@ export async function patch(req) {
 
   const { collection, id } = req.params;
   const { parentId, ownerId, orderKey, data } = req.body || {};
-  const sql = getDb();
+  const sql = await getDb();
 
   const updates = [];
   const params = [auth.tenant_id, collection, id];
@@ -128,7 +128,7 @@ export async function del(req) {
   if (denied) return denied;
 
   const { collection, id } = req.params;
-  const sql = getDb();
+  const sql = await getDb();
 
   const rows = await sql`
     DELETE FROM items WHERE tenant_id = ${auth.tenant_id} AND collection = ${collection} AND id = ${id} RETURNING id

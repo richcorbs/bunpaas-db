@@ -11,7 +11,7 @@ export async function get(req) {
 
   const { collection } = req.params;
   const { parentId, ownerId, limit = 25, offset = 0, orderBy = "created_at", filter } = req.query;
-  const sql = getDb();
+  const sql = await getDb();
 
   const conditions = ["tenant_id = $1", "collection = $2"];
   const params = [auth.tenant_id, collection];
@@ -65,7 +65,7 @@ export async function post(req) {
 
   const { collection } = req.params;
   const { parentId, ownerId, orderKey, data = {} } = req.body || {};
-  const sql = getDb();
+  const sql = await getDb();
 
   const [item] = await sql.unsafe(
     `INSERT INTO items (tenant_id, collection, parent_id, owner_id, order_key, data)

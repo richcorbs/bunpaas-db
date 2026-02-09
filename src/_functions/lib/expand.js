@@ -25,7 +25,7 @@ function parseExpandOp(expr) {
 export async function batchExpand(items, expandOps, tenantId) {
   if (!items.length || !expandOps.length) return items;
 
-  const sql = getDb();
+  const sql = await getDb();
   const itemMap = new Map(items.map((i) => [i.id, i]));
 
   for (const item of items) item._expanded = {};

@@ -8,7 +8,7 @@ export async function authenticate(req) {
     return { error: { status: 401, body: { error: "Missing token" } } };
   }
 
-  const sql = getDb();
+  const sql = await getDb();
   const rows = await sql`
     SELECT tenant_id, can_read, can_write
     FROM api_tokens

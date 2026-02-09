@@ -4,24 +4,37 @@ const DEFAULT_URL = "postgres://postgres:@localhost:5432/bunpaas";
 
 let sql;
 let schemaReady = false;
+let schemaInitPromise = null;
 
-export function getDb(env = {}) {
+export async function getDb(env = {}) {
   if (!sql) {
     const url = env.DATABASE_URL || process.env.DATABASE_URL || DEFAULT_URL;
     sql = new SQL(url);
-    // Initialize schema on first connection
-    initSchema(env).catch(err => console.error("Schema init error:", err));
   }
+  // Ensure schema is ready before returning
+  await ensureSchema(env);
   return sql;
 }
 
 export async function query(text, params = []) {
-  return getDb().unsafe(text, params);
+  const db = await getDb();
+  return db.unsafe(text, params);
+}
+
+async function ensureSchema(env = {}) {
+  if (schemaReady) return;
+  if (schemaInitPromise) return schemaInitPromise;
+  schemaInitPromise = initSchema(env);
+  await schemaInitPromise;
 }
 
 export async function initSchema(env = {}) {
   if (schemaReady) return;
-  const db = getDb(env);
+  if (!sql) {
+    const url = env.DATABASE_URL || process.env.DATABASE_URL || DEFAULT_URL;
+    sql = new SQL(url);
+  }
+  const db = sql;
 
   await db.unsafe(`
     CREATE EXTENSION IF NOT EXISTS "pgcrypto";
