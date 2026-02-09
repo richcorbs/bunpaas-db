@@ -1,65 +1,67 @@
 /**
- * ProtoDB - Simple API Client
+ * bunpaas-db - Simple API Client
  *
  * Usage:
  *
  *   // Create tenant
- *   const { tokens } = await protodb("http://localhost:5001").createTenant("My App");
+ *   const { tokens } = await bunpaasDb("https://db.example.com").createTenant("My App");
  *
  *   // Use the API
- *   const db = protodb("http://localhost:5001", tokens.readWrite);
+ *   const db = bunpaasDb("https://db.example.com", tokens.readWrite);
  *
- *   // Create
+ *   // CRUD Operations
  *   const { data: task } = await db.collection("tasks").create({
  *     data: { title: "Test" }
  *   });
  *
- *   // List with filters
  *   const { data: tasks } = await db.collection("tasks").list({
  *     filter: { status: "done" },
  *     expand: "owner"
  *   });
  *
- *   // Update (merge)
  *   await db.collection("tasks").update(task.id, {
  *     data: { status: "done" }
  *   });
  *
- *   // Replace (overwrite)
  *   await db.collection("tasks").replace(task.id, {
  *     data: { title: "New Title" }
  *   });
  *
- *   // Delete
  *   await db.collection("tasks").delete(task.id);
  *
- *   // Nested expand
- *   const { data: board } = await db.collection("boards").get(boardId, {
- *     expand: "children:columns.children:cards"
- *   });
+ *   // User Management
+ *   const { data: user } = await db.users.create("user@example.com", "password");
+ *   const { data: session } = await db.users.signin("user@example.com", "password");
+ *   await db.users.changePassword(user.id, "newpassword");
+ *   await db.users.delete(user.id);
  */
 
-export function protodb(baseUrl, token) {
+export function bunpaasDb(baseUrl, token) {
   const headers = {
     "Content-Type": "application/json",
-    ...(token && { Authorization: `Bearer ${token}` })
+    ...(token && { Authorization: `Bearer ${token}` }),
   };
 
   async function request(method, path, body) {
     const res = await fetch(`${baseUrl}${path}`, {
       method,
       headers,
-      body: body ? JSON.stringify(body) : undefined
+      body: body ? JSON.stringify(body) : undefined,
     });
     if (!res.ok) throw new Error((await res.json()).error);
     return res.status === 204 ? null : res.json();
   }
 
   return {
-    // Create tenant (no auth needed)
     createTenant: (name) => request("POST", "/_tokens", { name }),
 
-    // Collection operations
+    users: {
+      create: (email, password) => request("POST", "/_users", { email, password }),
+      changePassword: (id, password) => request("PATCH", `/_users/${id}`, { password }),
+      delete: (id) => request("DELETE", `/_users/${id}`),
+      signin: (email, password) => request("POST", "/_signin", { email, password }),
+    },
+
     collection: (name) => ({
       list: (opts = {}) => {
         const params = new URLSearchParams();
@@ -80,7 +82,7 @@ export function protodb(baseUrl, token) {
       create: (body) => request("POST", `/${name}`, body),
       replace: (id, body) => request("PUT", `/${name}/${id}`, body),
       update: (id, body) => request("PATCH", `/${name}/${id}`, body),
-      delete: (id) => request("DELETE", `/${name}/${id}`)
-    })
+      delete: (id) => request("DELETE", `/${name}/${id}`),
+    }),
   };
 }

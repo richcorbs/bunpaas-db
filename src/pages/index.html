@@ -1,0 +1,212 @@
+---
+title: bunpaas-db
+layout: default
+---
+
+<h1>bunpaas-db</h1>
+<p>A schema-agnostic, multi-tenant backend for prototyping apps. Built on Bun and PostgreSQL with JSONB storage.</p>
+
+<h2>Quick Start</h2>
+<pre><code>// Create a tenant
+const res = await fetch("https://your-app.example.com/_tokens", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ name: "My App" })
+});
+const { tenant, tokens } = await res.json();
+// tokens.readOnly  - can only read
+// tokens.readWrite - can read and write</code></pre>
+
+<h2>API</h2>
+
+<table>
+  <thead>
+    <tr><th>Method</th><th>Endpoint</th><th>Auth</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>POST</td><td><code>/_tokens</code></td><td>None</td><td>Create tenant</td></tr>
+    <tr><td>GET</td><td><code>/_tokens</code></td><td>Write</td><td>Get tokens</td></tr>
+    <tr><td>POST</td><td><code>/_users</code></td><td>Write</td><td>Create user</td></tr>
+    <tr><td>PATCH</td><td><code>/_users/:id</code></td><td>Write</td><td>Change password</td></tr>
+    <tr><td>DELETE</td><td><code>/_users/:id</code></td><td>Write</td><td>Delete user</td></tr>
+    <tr><td>POST</td><td><code>/_signin</code></td><td>Read</td><td>Authenticate user</td></tr>
+    <tr><td>GET</td><td><code>/:collection</code></td><td>Read</td><td>List items</td></tr>
+    <tr><td>GET</td><td><code>/:collection/:id</code></td><td>Read</td><td>Get item</td></tr>
+    <tr><td>POST</td><td><code>/:collection</code></td><td>Write</td><td>Create item</td></tr>
+    <tr><td>PUT</td><td><code>/:collection/:id</code></td><td>Write</td><td>Replace item</td></tr>
+    <tr><td>PATCH</td><td><code>/:collection/:id</code></td><td>Write</td><td>Merge update</td></tr>
+    <tr><td>DELETE</td><td><code>/:collection/:id</code></td><td>Write</td><td>Delete item</td></tr>
+  </tbody>
+</table>
+
+<h2>Authentication</h2>
+<p>All requests (except tenant creation) require a Bearer token:</p>
+<pre><code>Authorization: Bearer &lt;token&gt;</code></pre>
+<p>Creating a tenant returns a <code>readOnly</code> token (can only GET) and a <code>readWrite</code> token (full access).</p>
+
+<h2>Data Model</h2>
+<p>Items are stored with flexible JSONB data:</p>
+<table>
+  <thead>
+    <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>id</code></td><td>UUID</td><td>Auto-generated</td></tr>
+    <tr><td><code>collection</code></td><td>TEXT</td><td>e.g., "tasks", "users"</td></tr>
+    <tr><td><code>parent_id</code></td><td>UUID</td><td>Optional parent reference</td></tr>
+    <tr><td><code>owner_id</code></td><td>UUID</td><td>Optional owner reference</td></tr>
+    <tr><td><code>order_key</code></td><td>TEXT</td><td>Optional sort key</td></tr>
+    <tr><td><code>data</code></td><td>JSONB</td><td>Your custom data</td></tr>
+    <tr><td><code>created_at</code></td><td>TIMESTAMPTZ</td><td>Auto-set</td></tr>
+    <tr><td><code>updated_at</code></td><td>TIMESTAMPTZ</td><td>Auto-updated</td></tr>
+  </tbody>
+</table>
+
+<h2>CRUD</h2>
+
+<h3>Create</h3>
+<pre><code>const res = await fetch("https://your-app.example.com/tasks", {
+  method: "POST",
+  headers: {
+    "Authorization": `Bearer ${TOKEN}`,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    data: { title: "My Task", status: "pending" },
+    parentId: "optional-uuid",
+    orderKey: "a"
+  })
+});
+const { data: task } = await res.json();</code></pre>
+
+<h3>Read</h3>
+<pre><code>// List items
+const listRes = await fetch("https://your-app.example.com/tasks", {
+  headers: { "Authorization": `Bearer ${TOKEN}` }
+});
+const { data: tasks, pagination } = await listRes.json();
+
+// Get single item
+const getRes = await fetch(`https://your-app.example.com/tasks/${id}`, {
+  headers: { "Authorization": `Bearer ${TOKEN}` }
+});
+const { data: task } = await getRes.json();</code></pre>
+
+<h3>Update</h3>
+<p><strong>PUT</strong> replaces the entire item. <strong>PATCH</strong> merges with existing data.</p>
+<pre><code>// PUT - replaces data entirely
+await fetch(`https://your-app.example.com/tasks/${id}`, {
+  method: "PUT",
+  headers: {
+    "Authorization": `Bearer ${TOKEN}`,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({ data: { title: "New Title" } })
+});
+
+// PATCH - merges with existing data
+await fetch(`https://your-app.example.com/tasks/${id}`, {
+  method: "PATCH",
+  headers: {
+    "Authorization": `Bearer ${TOKEN}`,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({ data: { status: "done" } })
+});</code></pre>
+
+<h3>Delete</h3>
+<pre><code>await fetch(`https://your-app.example.com/tasks/${id}`, {
+  method: "DELETE",
+  headers: { "Authorization": `Bearer ${TOKEN}` }
+});</code></pre>
+
+<h2>Query Parameters</h2>
+<table>
+  <thead>
+    <tr><th>Parameter</th><th>Example</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>limit</code></td><td><code>?limit=10</code></td><td>Max items (default: 25)</td></tr>
+    <tr><td><code>offset</code></td><td><code>?offset=20</code></td><td>Skip items</td></tr>
+    <tr><td><code>orderBy</code></td><td><code>?orderBy=updated_at</code></td><td>Sort field</td></tr>
+    <tr><td><code>parentId</code></td><td><code>?parentId=uuid</code></td><td>Filter by parent</td></tr>
+    <tr><td><code>ownerId</code></td><td><code>?ownerId=uuid</code></td><td>Filter by owner</td></tr>
+    <tr><td><code>filter</code></td><td><code>?filter={"status":"done"}</code></td><td>JSON field filter</td></tr>
+    <tr><td><code>expand</code></td><td><code>?expand=parent,owner</code></td><td>Include related items</td></tr>
+  </tbody>
+</table>
+
+<h2>Expand Relationships</h2>
+<p>Inline parent, owner, or children in a single request:</p>
+<pre><code>// Expand parent and owner
+const res = await fetch(
+  `https://your-app.example.com/tasks/${id}?expand=parent,owner`,
+  { headers: { "Authorization": `Bearer ${TOKEN}` } }
+);
+const { data: task } = await res.json();
+// task._expanded.parent, task._expanded.owner
+
+// Expand children from a collection
+const boardRes = await fetch(
+  `https://your-app.example.com/boards/${boardId}?expand=children:cards`,
+  { headers: { "Authorization": `Bearer ${TOKEN}` } }
+);
+
+// Nested expand: board -> columns -> cards -> owner
+const deepRes = await fetch(
+  `https://your-app.example.com/boards/${boardId}?expand=children:columns.children:cards.owner`,
+  { headers: { "Authorization": `Bearer ${TOKEN}` } }
+);</code></pre>
+
+<h2>User Management</h2>
+<pre><code>// Create user
+const userRes = await fetch("https://your-app.example.com/_users", {
+  method: "POST",
+  headers: {
+    "Authorization": `Bearer ${WRITE_TOKEN}`,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({ email: "user@example.com", password: "secret" })
+});
+const { data: user } = await userRes.json();
+
+// Sign in
+const signinRes = await fetch("https://your-app.example.com/_signin", {
+  method: "POST",
+  headers: {
+    "Authorization": `Bearer ${READ_TOKEN}`,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({ email: "user@example.com", password: "secret" })
+});
+
+// Change password
+await fetch(`https://your-app.example.com/_users/${userId}`, {
+  method: "PATCH",
+  headers: {
+    "Authorization": `Bearer ${WRITE_TOKEN}`,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({ password: "newpassword" })
+});
+
+// Delete user
+await fetch(`https://your-app.example.com/_users/${userId}`, {
+  method: "DELETE",
+  headers: { "Authorization": `Bearer ${WRITE_TOKEN}` }
+});</code></pre>
+
+<h2>JavaScript Client</h2>
+<pre><code>import { bunpaasDb } from "/assets/js/client.js";
+
+// Create tenant
+const { tokens } = await bunpaasDb("https://your-app.example.com").createTenant("My App");
+
+// Use the API
+const db = bunpaasDb("https://your-app.example.com", tokens.readWrite);
+
+// CRUD
+const { data: task } = await db.collection("tasks").create({ data: { title: "Test" } });
+const { data: tasks } = await db.collection("tasks").list({ filter: { status: "done" } });
+await db.collection("tasks").update(task.id, { data: { status: "done" } });
+await db.collection("tasks").delete(task.id);</code></pre>
