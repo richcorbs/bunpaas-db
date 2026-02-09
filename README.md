@@ -2,13 +2,28 @@
 
 A schema-agnostic, multi-tenant backend for prototyping apps like Kanban, CMS, or CRM. Built as a [bunpaas-cli](https://github.com/bunpaas/bunpaas-cli) site with serverless functions on Bun and PostgreSQL with JSONB storage.
 
+**Live Demo:** [bunpaas-db.richcorbs.com](https://bunpaas-db.richcorbs.com)
+
 **Zero npm dependencies.** Uses Bun.sql (native PostgreSQL), Bun.CryptoHasher, and Web Crypto API.
+
+## Features
+
+- **Interactive Demo Page** - Try the API directly from your browser
+- **Alpine.js Token Form** - Create tenants and get API tokens instantly
+- **Schema-agnostic** - Store any JSON data in JSONB columns
+- **Multi-tenant** - Complete tenant isolation
+- **Relationship Expansion** - Fetch related items with `?expand=parent,owner,children:collection`
+- **JSON Filtering** - Query by JSONB fields: `?filter={"status":"done"}`
+- **User Management** - Built-in authentication with password hashing
 
 ## Quick Start
 
 ```bash
-bunpaas-cli dev      # Dev server with hot reload
-bun test             # Run test suite
+# Set your PostgreSQL connection
+export DATABASE_URL=postgres://bunpaas:password@localhost:5432/bunpaas
+
+bunpaas-cli dev      # Dev server with hot reload (http://localhost:8000)
+bun test             # Run 44 tests
 bunpaas-cli build    # Build for deployment
 bunpaas-cli deploy   # Deploy to bunpaas
 ```
