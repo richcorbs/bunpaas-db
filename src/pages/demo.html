@@ -1,0 +1,123 @@
+---
+title: bunpaas-db Demo
+layout: default
+---
+
+<script>
+function demoApp() {
+  const params = new URLSearchParams(window.location.search);
+  return {
+    readToken: params.get('r') || '',
+    writeToken: params.get('w') || '',
+    collection: 'tasks',
+    itemId: '',
+    jsonData: '{"title":"Example","status":"pending"}',
+    response: null,
+    error: '',
+    loading: false,
+
+    async apiCall(method, path, body = null, useWrite = false) {
+      this.loading = true;
+      this.error = '';
+      this.response = null;
+      const token = useWrite ? this.writeToken : this.readToken;
+      try {
+        const res = await fetch(path, {
+          method,
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: body ? JSON.stringify(body) : undefined
+        });
+        const text = await res.text();
+        this.response = { status: res.status, body: text ? JSON.parse(text) : null };
+      } catch (err) {
+        this.error = err.message;
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async list() {
+      await this.apiCall('GET', `/${this.collection}`);
+    },
+
+    async get() {
+      if (!this.itemId) { this.error = 'Item ID required'; return; }
+      await this.apiCall('GET', `/${this.collection}/${this.itemId}`);
+    },
+
+    async create() {
+      let data;
+      try { data = JSON.parse(this.jsonData); } catch { this.error = 'Invalid JSON'; return; }
+      await this.apiCall('POST', `/${this.collection}`, { data }, true);
+    },
+
+    async update() {
+      if (!this.itemId) { this.error = 'Item ID required'; return; }
+      let data;
+      try { data = JSON.parse(this.jsonData); } catch { this.error = 'Invalid JSON'; return; }
+      await this.apiCall('PATCH', `/${this.collection}/${this.itemId}`, { data }, true);
+    },
+
+    async replace() {
+      if (!this.itemId) { this.error = 'Item ID required'; return; }
+      let data;
+      try { data = JSON.parse(this.jsonData); } catch { this.error = 'Invalid JSON'; return; }
+      await this.apiCall('PUT', `/${this.collection}/${this.itemId}`, { data }, true);
+    },
+
+    async deleteItem() {
+      if (!this.itemId) { this.error = 'Item ID required'; return; }
+      await this.apiCall('DELETE', `/${this.collection}/${this.itemId}`, null, true);
+    }
+  };
+}
+</script>
+
+<h1>bunpaas-db Demo</h1>
+<p><a href="/">&larr; Back to Docs</a></p>
+
+<div x-data="demoApp()">
+  <h2>Configuration</h2>
+  <fieldset>
+    <label>Read Token</label>
+    <input type="text" x-model="readToken" placeholder="Read-only token" />
+    <label>Write Token</label>
+    <input type="text" x-model="writeToken" placeholder="Read-write token" />
+  </fieldset>
+
+  <h2>Operations</h2>
+  <fieldset>
+    <label>Collection</label>
+    <input type="text" x-model="collection" placeholder="tasks" />
+    <label>Item ID <small>(for Get/Update/Replace/Delete)</small></label>
+    <input type="text" x-model="itemId" placeholder="UUID" />
+    <label>JSON Data <small>(for Create/Update/Replace)</small></label>
+    <textarea x-model="jsonData" rows="3" placeholder='{"title":"Example"}'></textarea>
+  </fieldset>
+
+  <fieldset>
+    <button @click="list" :disabled="loading">List Items</button>
+    <button @click="get" :disabled="loading || !itemId">Get Item</button>
+    <button @click="create" :disabled="loading">Create Item</button>
+    <button @click="update" :disabled="loading || !itemId">Update Item (PATCH)</button>
+    <button @click="replace" :disabled="loading || !itemId">Replace Item (PUT)</button>
+    <button @click="deleteItem" :disabled="loading || !itemId" style="background:var(--red,red)">Delete Item</button>
+  </fieldset>
+
+  <div x-show="loading" style="margin-top:1rem">
+    <p>Loading...</p>
+  </div>
+
+  <div x-show="error" style="color:var(--red,red);margin-top:1rem">
+    <strong>Error:</strong> <span x-text="error"></span>
+  </div>
+
+  <div x-show="response" style="margin-top:1rem">
+    <h3>Response</h3>
+    <p><strong>Status:</strong> <code x-text="response?.status"></code></p>
+    <pre x-text="JSON.stringify(response?.body, null, 2)" style="background:#f5f5f5;padding:1rem;overflow:auto"></pre>
+  </div>
+</div>

@@ -3,8 +3,65 @@ title: bunpaas-db
 layout: default
 ---
 
+<script>
+function createTenantApp() {
+  return {
+    appName: '',
+    loading: false,
+    error: '',
+    result: null,
+    async createTenant() {
+      if (!this.appName.trim()) return;
+      this.loading = true;
+      this.error = '';
+      this.result = null;
+      try {
+        const res = await fetch('/_tokens', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: this.appName })
+        });
+        if (!res.ok) throw new Error((await res.json()).error || 'Request failed');
+        const data = await res.json();
+        this.result = data;
+        const params = new URLSearchParams({ r: data.tokens.readOnly, w: data.tokens.readWrite });
+        setTimeout(() => window.open('/demo?' + params, '_blank'), 100);
+      } catch (err) {
+        this.error = err.message;
+      } finally {
+        this.loading = false;
+      }
+    }
+  };
+}
+</script>
+
 <h1>bunpaas-db</h1>
 <p>A schema-agnostic, multi-tenant backend for prototyping apps. Built on Bun and PostgreSQL with JSONB storage.</p>
+
+<h2>Try It</h2>
+<div x-data="createTenantApp()">
+  <form @submit.prevent="createTenant">
+    <fieldset>
+      <label for="app-name">App Name</label>
+      <input type="text" id="app-name" x-model="appName" placeholder="My App" required :disabled="loading" />
+      <button type="submit" :disabled="loading" x-text="loading ? 'Creating...' : 'Create Tenant'" class="mt-4"></button>
+    </fieldset>
+  </form>
+
+  <div x-show="error" x-text="error" style="color:var(--red,red);margin-top:1rem"></div>
+
+  <div x-show="result" style="margin-top:1rem">
+    <table>
+      <tbody>
+        <tr><td><strong>Tenant ID</strong></td><td><code x-text="result?.tenant?.id"></code></td></tr>
+        <tr><td><strong>Read-Only Token</strong></td><td><code x-text="result?.tokens?.readOnly"></code></td></tr>
+        <tr><td><strong>Read-Write Token</strong></td><td><code x-text="result?.tokens?.readWrite"></code></td></tr>
+      </tbody>
+    </table>
+    <p><a :href="'/demo?r=' + result?.tokens?.readOnly + '&w=' + result?.tokens?.readWrite" target="_blank">Open Demo &rarr;</a></p>
+  </div>
+</div>
 
 <h2>Quick Start</h2>
 <pre><code>// Create a tenant
