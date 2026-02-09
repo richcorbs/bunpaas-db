@@ -84,21 +84,21 @@ function demoApp() {
   <fieldset>
     <label>Read Token</label>
     <input type="text" x-model="readToken" placeholder="Read-only token" />
-    <label>Write Token</label>
+    <label class="mt-4">Write Token</label>
     <input type="text" x-model="writeToken" placeholder="Read-write token" />
   </fieldset>
 
-  <h2>Operations</h2>
+  <h2 class="mt-8">Operations</h2>
   <fieldset>
     <label>Collection</label>
     <input type="text" x-model="collection" placeholder="tasks" />
-    <label>Item ID <small>(for Get/Update/Replace/Delete)</small></label>
+    <label class="mt-4">Item ID <small>(for Get/Update/Replace/Delete)</small></label>
     <input type="text" x-model="itemId" placeholder="UUID" />
-    <label>JSON Data <small>(for Create/Update/Replace)</small></label>
+    <label class="mt-4">JSON Data <small>(for Create/Update/Replace)</small></label>
     <textarea x-model="jsonData" rows="3" placeholder='{"title":"Example"}'></textarea>
   </fieldset>
 
-  <fieldset>
+  <fieldset class="mt-8">
     <button @click="list" :disabled="loading">List Items</button>
     <button @click="get" :disabled="loading || !itemId">Get Item</button>
     <button @click="create" :disabled="loading">Create Item</button>

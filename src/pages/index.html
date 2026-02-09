@@ -63,7 +63,7 @@ function createTenantApp() {
   </div>
 </div>
 
-<h2>Quick Start</h2>
+<h2 class="mt-8">Quick Start</h2>
 <pre><code>// Create a tenant
 const res = await fetch("https://your-app.example.com/_tokens", {
   method: "POST",
@@ -74,7 +74,7 @@ const { tenant, tokens } = await res.json();
 // tokens.readOnly  - can only read
 // tokens.readWrite - can read and write</code></pre>
 
-<h2>API</h2>
+<h2 class="mt-8">API</h2>
 
 <table>
   <thead>
@@ -96,12 +96,12 @@ const { tenant, tokens } = await res.json();
   </tbody>
 </table>
 
-<h2>Authentication</h2>
+<h2 class="mt-8">Authentication</h2>
 <p>All requests (except tenant creation) require a Bearer token:</p>
 <pre><code>Authorization: Bearer &lt;token&gt;</code></pre>
 <p>Creating a tenant returns a <code>readOnly</code> token (can only GET) and a <code>readWrite</code> token (full access).</p>
 
-<h2>Data Model</h2>
+<h2 class="mt-8">Data Model</h2>
 <p>Items are stored with flexible JSONB data:</p>
 <table>
   <thead>
@@ -119,9 +119,9 @@ const { tenant, tokens } = await res.json();
   </tbody>
 </table>
 
-<h2>CRUD</h2>
+<h2 class="mt-8">CRUD</h2>
 
-<h3>Create</h3>
+<h3 class="mt-8">Create</h3>
 <pre><code>const res = await fetch("https://your-app.example.com/tasks", {
   method: "POST",
   headers: {
@@ -136,7 +136,7 @@ const { tenant, tokens } = await res.json();
 });
 const { data: task } = await res.json();</code></pre>
 
-<h3>Read</h3>
+<h3 class="mt-8">Read</h3>
 <pre><code>// List items
 const listRes = await fetch("https://your-app.example.com/tasks", {
   headers: { "Authorization": `Bearer ${TOKEN}` }
@@ -149,7 +149,7 @@ const getRes = await fetch(`https://your-app.example.com/tasks/${id}`, {
 });
 const { data: task } = await getRes.json();</code></pre>
 
-<h3>Update</h3>
+<h3 class="mt-8">Update</h3>
 <p><strong>PUT</strong> replaces the entire item. <strong>PATCH</strong> merges with existing data.</p>
 <pre><code>// PUT - replaces data entirely
 await fetch(`https://your-app.example.com/tasks/${id}`, {
@@ -171,13 +171,13 @@ await fetch(`https://your-app.example.com/tasks/${id}`, {
   body: JSON.stringify({ data: { status: "done" } })
 });</code></pre>
 
-<h3>Delete</h3>
+<h3 class="mt-8">Delete</h3>
 <pre><code>await fetch(`https://your-app.example.com/tasks/${id}`, {
   method: "DELETE",
   headers: { "Authorization": `Bearer ${TOKEN}` }
 });</code></pre>
 
-<h2>Query Parameters</h2>
+<h2 class="mt-8">Query Parameters</h2>
 <table>
   <thead>
     <tr><th>Parameter</th><th>Example</th><th>Description</th></tr>
@@ -193,7 +193,7 @@ await fetch(`https://your-app.example.com/tasks/${id}`, {
   </tbody>
 </table>
 
-<h2>Expand Relationships</h2>
+<h2 class="mt-8">Expand Relationships</h2>
 <p>Inline parent, owner, or children in a single request:</p>
 <pre><code>// Expand parent and owner
 const res = await fetch(
@@ -215,7 +215,7 @@ const deepRes = await fetch(
   { headers: { "Authorization": `Bearer ${TOKEN}` } }
 );</code></pre>
 
-<h2>User Management</h2>
+<h2 class="mt-8">User Management</h2>
 <pre><code>// Create user
 const userRes = await fetch("https://your-app.example.com/_users", {
   method: "POST",
@@ -253,7 +253,7 @@ await fetch(`https://your-app.example.com/_users/${userId}`, {
   headers: { "Authorization": `Bearer ${WRITE_TOKEN}` }
 });</code></pre>
 
-<h2>JavaScript Client</h2>
+<h2 class="mt-8">JavaScript Client</h2>
 <pre><code>import { bunpaasDb } from "/assets/js/client.js";
 
 // Create tenant

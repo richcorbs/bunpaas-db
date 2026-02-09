@@ -1,5 +1,8 @@
 {
-  "cors": {
-    "origins": ["*"]
-  }
+  "environments": {
+    "production": "bunpaas-db.richcorbs.com",
+    "development": "bunpaas-db.localhost"
+  },
+  "platform": true,
+  "maxUpload": "0MB"
 }
