@@ -118,6 +118,6 @@ function demoApp() {
   <div x-show="response" style="margin-top:1rem">
     <h3>Response</h3>
     <p><strong>Status:</strong> <code x-text="response?.status"></code></p>
-    <pre x-text="JSON.stringify(response?.body, null, 2)" style="background:#f5f5f5;padding:1rem;overflow:auto"></pre>
+    <pre><code x-text="JSON.stringify(response?.body, null, 2)"></code></pre>
   </div>
 </div>
