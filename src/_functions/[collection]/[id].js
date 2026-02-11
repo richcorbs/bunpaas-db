@@ -2,6 +2,7 @@ import { getDb } from "../lib/db.js";
 import { authenticate, requireRead, requireWrite } from "../lib/auth.js";
 import { parseExpand, batchExpand } from "../lib/expand.js";
 import { flattenItem } from "../lib/flatten.js";
+import { padOrderKey } from "../lib/orderKey.js";
 
 export async function get(req) {
   const auth = await authenticate(req);
@@ -41,7 +42,7 @@ export async function post(req) {
     `INSERT INTO items (tenant_id, collection, parent_id, owner_id, order_key, data)
      VALUES ($1, $2, $3, $4, $5, $6)
      RETURNING *`,
-    [auth.tenant_id, collection, parentId || null, ownerId || null, orderKey || null, data],
+    [auth.tenant_id, collection, parentId || null, ownerId || null, padOrderKey(orderKey), data],
   );
 
   return { status: 201, body: { data: flattenItem(item) } };
@@ -61,7 +62,7 @@ export async function put(req) {
     `UPDATE items SET parent_id = $4, owner_id = $5, order_key = $6, data = $7, updated_at = now()
      WHERE tenant_id = $1 AND collection = $2 AND id = $3
      RETURNING *`,
-    [auth.tenant_id, collection, id, parentId || null, ownerId || null, orderKey || null, data],
+    [auth.tenant_id, collection, id, parentId || null, ownerId || null, padOrderKey(orderKey), data],
   );
 
   if (!rows.length) {
@@ -93,7 +94,7 @@ export async function patch(req) {
     updates.push(`owner_id = $${params.length}`);
   }
   if (orderKey !== undefined) {
-    params.push(orderKey);
+    params.push(padOrderKey(orderKey));
     updates.push(`order_key = $${params.length}`);
   }
   if (data !== undefined) {

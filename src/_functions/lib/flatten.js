@@ -1,6 +1,12 @@
+import { unpadOrderKey } from "./orderKey.js";
+
 export function flattenItem(item) {
-  let { data, _expanded, ...rest } = item;
+  let { data, order_key, _expanded, ...rest } = item;
   if (typeof data === "string") data = JSON.parse(data);
+  // Unpad order_key for clean API response
+  if (order_key !== undefined) {
+    rest.order_key = unpadOrderKey(order_key);
+  }
   const result = { ...rest, ...data };
 
   if (_expanded) {

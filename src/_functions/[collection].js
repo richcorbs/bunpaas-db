@@ -2,6 +2,7 @@ import { getDb } from "./lib/db.js";
 import { authenticate, requireRead, requireWrite } from "./lib/auth.js";
 import { parseExpand, batchExpand } from "./lib/expand.js";
 import { flattenItem } from "./lib/flatten.js";
+import { padOrderKey } from "./lib/orderKey.js";
 
 export async function get(req) {
   const auth = await authenticate(req);
@@ -81,7 +82,7 @@ export async function post(req) {
     `INSERT INTO items (tenant_id, collection, parent_id, owner_id, order_key, data)
      VALUES ($1, $2, $3, $4, $5, $6)
      RETURNING *`,
-    [auth.tenant_id, collection, parentId || null, ownerId || null, orderKey || null, data],
+    [auth.tenant_id, collection, parentId || null, ownerId || null, padOrderKey(orderKey), data],
   );
 
   return { status: 201, body: { data: flattenItem(item) } };

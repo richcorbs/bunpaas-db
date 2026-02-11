@@ -462,6 +462,71 @@ describe("Authentication", () => {
 });
 
 // ==========================================
+// ORDER_KEY SORTING TESTS
+// ==========================================
+
+describe("Order Key Sorting", () => {
+  let ITEM_IDS = [];
+
+  beforeAll(async () => {
+    // Create items with numeric order keys: 1, 2, 10
+    // Without padding, lexicographic sort would be: 1, 10, 2
+    // With padding, correct numeric sort: 1, 2, 10
+    const items = [
+      { orderKey: 1, data: { name: "First" } },
+      { orderKey: 2, data: { name: "Second" } },
+      { orderKey: 10, data: { name: "Tenth" } },
+    ];
+
+    for (const item of items) {
+      const res = await api("POST", "/sort-test", {
+        token: WRITE_TOKEN,
+        body: item,
+      });
+      ITEM_IDS.push(res.json.data.id);
+    }
+  });
+
+  it("pads numeric orderKey and returns unpadded", async () => {
+    const { status, json } = await api("POST", "/sort-test", {
+      token: WRITE_TOKEN,
+      body: { orderKey: 42, data: { name: "Test" } },
+    });
+    expect(status).toBe(201);
+    // Should return unpadded value
+    expect(json.data.order_key).toBe("42");
+  });
+
+  it("preserves non-numeric orderKey as-is", async () => {
+    const { status, json } = await api("POST", "/sort-test", {
+      token: WRITE_TOKEN,
+      body: { orderKey: "a", data: { name: "Alpha" } },
+    });
+    expect(status).toBe(201);
+    expect(json.data.order_key).toBe("a");
+  });
+
+  it("sorts numeric orderKey correctly (1, 2, 10 not 1, 10, 2)", async () => {
+    const { status, json } = await api("GET", "/sort-test?orderBy=order_key", { token: READ_TOKEN });
+    expect(status).toBe(200);
+
+    const orderKeys = json.data.map((item) => item.order_key);
+    // Should be sorted numerically, not lexicographically
+    expect(orderKeys).toEqual(["1", "2", "10", "42", "a"]);
+  });
+
+  afterAll(async () => {
+    // Cleanup all sort-test items
+    const { json } = await api("GET", "/sort-test?limit=1000", { token: READ_TOKEN });
+    if (json?.data) {
+      for (const item of json.data) {
+        await api("DELETE", `/sort-test/${item.id}`, { token: WRITE_TOKEN });
+      }
+    }
+  });
+});
+
+// ==========================================
 // MULTI-TENANT ISOLATION TESTS
 // ==========================================
 
