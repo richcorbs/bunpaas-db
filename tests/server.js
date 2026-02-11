@@ -4,6 +4,7 @@
  */
 
 import * as tokensHandler from "../src/_functions/_tokens.js";
+import * as backupHandler from "../src/_functions/_backup.js";
 import * as usersHandler from "../src/_functions/_users.js";
 import * as userByIdHandler from "../src/_functions/_users/[id].js";
 import * as signinHandler from "../src/_functions/_signin.js";
@@ -12,6 +13,7 @@ import * as collectionItemHandler from "../src/_functions/[collection]/[id].js";
 
 function route(path) {
   if (path === "/_tokens") return { handler: tokensHandler, params: {} };
+  if (path === "/_backup") return { handler: backupHandler, params: {} };
   if (path === "/_users") return { handler: usersHandler, params: {} };
   if (path === "/_signin") return { handler: signinHandler, params: {} };
 

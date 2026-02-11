@@ -95,6 +95,7 @@ const { tenant, tokens } = await res.json();
   <tbody>
     <tr><td>POST</td><td><code>/_tokens</code></td><td>None</td><td>Create tenant</td></tr>
     <tr><td>GET</td><td><code>/_tokens</code></td><td>Write</td><td>Get tokens</td></tr>
+    <tr><td>GET</td><td><code>/_backup</code></td><td>Write</td><td>Export tenant data</td></tr>
     <tr><td>POST</td><td><code>/_users</code></td><td>Write</td><td>Create user</td></tr>
     <tr><td>PATCH</td><td><code>/_users/:id</code></td><td>Write</td><td>Change password</td></tr>
     <tr><td>DELETE</td><td><code>/_users/:id</code></td><td>Write</td><td>Delete user</td></tr>
@@ -250,6 +251,18 @@ const deepRes = await fetch(
   `https://your-app.example.com/boards/${boardId}?expand=children:columns.children:cards.owner`,
   { headers: { "Authorization": `Bearer ${TOKEN}` } }
 );</code></pre>
+
+<h2 class="mt-8">Backup</h2>
+<p>Export all your tenant data (items and users) as JSON:</p>
+<pre><code>const res = await fetch("https://your-app.example.com/_backup", {
+  headers: { "Authorization": `Bearer ${WRITE_TOKEN}` }
+});
+const backup = await res.json();
+// backup.version = "1.0"
+// backup.exported_at = ISO timestamp
+// backup.tenant = { id, name, created_at }
+// backup.collections = { tasks: [...], projects: [...] }
+// backup._users = [...]</code></pre>
 
 <h2 class="mt-8">User Management</h2>
 <pre><code>// Create user

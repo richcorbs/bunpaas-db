@@ -527,6 +527,51 @@ describe("Order Key Sorting", () => {
 });
 
 // ==========================================
+// BACKUP TESTS
+// ==========================================
+
+describe("Backup", () => {
+  it("exports tenant data with write token (200)", async () => {
+    // Create some test data
+    const task = await api("POST", "/backup-test", {
+      token: WRITE_TOKEN,
+      body: { data: { title: "Backup Test Task" } },
+    });
+
+    const user = await api("POST", "/_users", {
+      token: WRITE_TOKEN,
+      body: { email: "backup-test@example.com", password: "test123" },
+    });
+
+    // Export backup
+    const { status, json } = await api("GET", "/_backup", { token: WRITE_TOKEN });
+
+    expect(status).toBe(200);
+    expect(json.version).toBe("1.0");
+    expect(json.exported_at).toBeDefined();
+    expect(json.tenant.id).toBe(TENANT_ID);
+    expect(json.tenant.name).toBeDefined();
+    expect(json.collections).toBeDefined();
+    expect(json._users).toBeDefined();
+    expect(Array.isArray(json._users)).toBe(true);
+
+    // Cleanup
+    await api("DELETE", `/backup-test/${task.json.data.id}`, { token: WRITE_TOKEN });
+    await api("DELETE", `/_users/${user.json.data.id}`, { token: WRITE_TOKEN });
+  });
+
+  it("rejects backup with read-only token (403)", async () => {
+    const { status } = await api("GET", "/_backup", { token: READ_TOKEN });
+    expect(status).toBe(403);
+  });
+
+  it("rejects backup without token (401)", async () => {
+    const { status } = await api("GET", "/_backup");
+    expect(status).toBe(401);
+  });
+});
+
+// ==========================================
 // BULK OPERATIONS TESTS
 // ==========================================
 

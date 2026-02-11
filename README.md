@@ -38,6 +38,7 @@ bunpaas-cli deploy   # Deploy to bunpaas
 |--------|----------|------|-------------|
 | POST | `/_tokens` | None | Create tenant |
 | GET | `/_tokens` | Write | Get tokens |
+| GET | `/_backup` | Write | Export tenant data |
 | POST | `/_users` | Write | Create user |
 | PATCH | `/_users/:id` | Write | Change password |
 | DELETE | `/_users/:id` | Write | Delete user |
@@ -199,6 +200,22 @@ const boardRes = await fetch(
   `http://localhost:5001/boards/${boardId}?expand=children:columns.children:cards.owner`,
   { headers: { "Authorization": `Bearer ${TOKEN}` } }
 );
+```
+
+## Backup/Restore
+
+Export all tenant data (items and users) as JSON:
+
+```javascript
+const res = await fetch("http://localhost:5001/_backup", {
+  headers: { "Authorization": `Bearer ${WRITE_TOKEN}` }
+});
+const backup = await res.json();
+// backup.version = "1.0"
+// backup.exported_at = ISO timestamp
+// backup.tenant = { id, name, created_at }
+// backup.collections = { tasks: [...], projects: [...] }
+// backup._users = [...]
 ```
 
 ## User Management
