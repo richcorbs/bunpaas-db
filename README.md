@@ -13,7 +13,11 @@ A schema-agnostic, multi-tenant backend for prototyping apps like Kanban, CMS, o
 - **Schema-agnostic** - Store any JSON data in JSONB columns
 - **Multi-tenant** - Complete tenant isolation
 - **Relationship Expansion** - Fetch related items with `?expand=parent,owner,children:collection`
-- **JSON Filtering** - Query by JSONB fields: `?filter={"status":"done"}`
+- **JSON Filtering** - Query by JSONB fields: `?filter={"status":"done"}` (supports nested paths like `{"user.name":"John"}`)
+- **GIN Indexing** - Automatic PostgreSQL GIN index for fast JSONB queries
+- **Numeric Sorting** - Automatic zero-padding for numeric order_key values (1, 2, 10 sort correctly)
+- **Bulk Operations** - Create multiple items in one request with array payloads
+- **Cascading Deletes** - Delete parent and all descendants with `?cascade=true`
 - **User Management** - Built-in authentication with password hashing
 
 ## Quick Start
@@ -40,10 +44,10 @@ bunpaas-cli deploy   # Deploy to bunpaas
 | POST | `/_signin` | Read | Authenticate user |
 | GET | `/:collection` | Read | List items |
 | GET | `/:collection/:id` | Read | Get item |
-| POST | `/:collection` | Write | Create item |
+| POST | `/:collection` | Write | Create item (array for bulk create) |
 | PUT | `/:collection/:id` | Write | Replace item |
 | PATCH | `/:collection/:id` | Write | Merge update |
-| DELETE | `/:collection/:id` | Write | Delete item |
+| DELETE | `/:collection/:id` | Write | Delete item (use `?cascade=true` for cascading delete) |
 
 ## Authentication
 
@@ -131,6 +135,41 @@ await fetch(`http://localhost:5001/tasks/${id}`, {
 });
 ```
 
+## Bulk Operations
+
+Create up to 100 items in a single request by passing an array:
+
+```javascript
+const res = await fetch("http://localhost:5001/tasks", {
+  method: "POST",
+  headers: {
+    "Authorization": `Bearer ${TOKEN}`,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify([
+    { data: { title: "Task 1", status: "pending" } },
+    { data: { title: "Task 2", status: "done" } },
+    { data: { title: "Task 3", status: "in_progress" } }
+  ])
+});
+const { data: tasks, count } = await res.json();
+// count: 3
+```
+
+## Cascading Deletes
+
+Delete an item and all its descendants (children, grandchildren, etc.) across all collections:
+
+```javascript
+const res = await fetch(`http://localhost:5001/boards/${boardId}?cascade=true`, {
+  method: "DELETE",
+  headers: { "Authorization": `Bearer ${TOKEN}` }
+});
+const { deleted, ids } = await res.json();
+// deleted: 5 (board + 4 children items)
+// ids: ["uuid1", "uuid2", ...]
+```
+
 ## Query Parameters
 
 | Parameter | Example | Description |
@@ -140,7 +179,8 @@ await fetch(`http://localhost:5001/tasks/${id}`, {
 | `orderBy` | `?orderBy=updated_at` | Sort field |
 | `parentId` | `?parentId=uuid` | Filter by parent |
 | `ownerId` | `?ownerId=uuid` | Filter by owner |
-| `filter` | `?filter={"status":"done"}` | JSON field filter |
+| `filter` | `?filter={"status":"done"}` | JSON field filter (supports nested: `{"user.name":"John"}`) |
+| `cascade` | `?cascade=true` | Delete item and all descendants |
 | `expand` | `?expand=parent,owner` | Include related items |
 
 ## Expand Relationships

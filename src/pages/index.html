@@ -39,6 +39,18 @@ function createTenantApp() {
 <h1>bunpaas-db</h1>
 <p>A schema-agnostic, multi-tenant backend for prototyping apps. Built on Bun and PostgreSQL with JSONB storage.</p>
 
+<h3>Features</h3>
+<ul>
+  <li><strong>Zero dependencies</strong> - Uses native Bun APIs</li>
+  <li><strong>JSONB Storage</strong> - Schema-agnostic with GIN indexing</li>
+  <li><strong>Nested Filtering</strong> - Query by nested JSON paths</li>
+  <li><strong>Relationship Expansion</strong> - Inline related items</li>
+  <li><strong>Numeric Sorting</strong> - Automatic order_key padding</li>
+  <li><strong>Bulk Operations</strong> - Create 100 items at once</li>
+  <li><strong>Cascading Deletes</strong> - Delete parent + descendants</li>
+  <li><strong>Multi-tenant</strong> - Complete data isolation</li>
+</ul>
+
 <h2>Try It</h2>
 <div x-data="createTenantApp()">
   <form @submit.prevent="createTenant">
@@ -89,10 +101,10 @@ const { tenant, tokens } = await res.json();
     <tr><td>POST</td><td><code>/_signin</code></td><td>Read</td><td>Authenticate user</td></tr>
     <tr><td>GET</td><td><code>/:collection</code></td><td>Read</td><td>List items</td></tr>
     <tr><td>GET</td><td><code>/:collection/:id</code></td><td>Read</td><td>Get item</td></tr>
-    <tr><td>POST</td><td><code>/:collection</code></td><td>Write</td><td>Create item</td></tr>
+    <tr><td>POST</td><td><code>/:collection</code></td><td>Write</td><td>Create item (array for bulk)</td></tr>
     <tr><td>PUT</td><td><code>/:collection/:id</code></td><td>Write</td><td>Replace item</td></tr>
     <tr><td>PATCH</td><td><code>/:collection/:id</code></td><td>Write</td><td>Merge update</td></tr>
-    <tr><td>DELETE</td><td><code>/:collection/:id</code></td><td>Write</td><td>Delete item</td></tr>
+    <tr><td>DELETE</td><td><code>/:collection/:id</code></td><td>Write</td><td>Delete item (<code>?cascade</code> for recursive)</td></tr>
   </tbody>
 </table>
 
@@ -175,7 +187,30 @@ await fetch(`https://your-app.example.com/tasks/${id}`, {
 <pre><code>await fetch(`https://your-app.example.com/tasks/${id}`, {
   method: "DELETE",
   headers: { "Authorization": `Bearer ${TOKEN}` }
-});</code></pre>
+});
+
+// Cascading delete - removes item and all descendants
+const res = await fetch(`https://your-app.example.com/boards/${boardId}?cascade=true`, {
+  method: "DELETE",
+  headers: { "Authorization": `Bearer ${TOKEN}` }
+});
+const { deleted, ids } = await res.json();</code></pre>
+
+<h2 class="mt-8">Bulk Operations</h2>
+<p>Create up to 100 items in a single request by passing an array:</p>
+<pre><code>const res = await fetch("https://your-app.example.com/tasks", {
+  method: "POST",
+  headers: {
+    "Authorization": `Bearer ${TOKEN}`,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify([
+    { data: { title: "Task 1" } },
+    { data: { title: "Task 2" } },
+    { data: { title: "Task 3" } }
+  ])
+});
+const { data: tasks, count } = await res.json();</code></pre>
 
 <h2 class="mt-8">Query Parameters</h2>
 <table>
@@ -188,8 +223,9 @@ await fetch(`https://your-app.example.com/tasks/${id}`, {
     <tr><td><code>orderBy</code></td><td><code>?orderBy=updated_at</code></td><td>Sort field</td></tr>
     <tr><td><code>parentId</code></td><td><code>?parentId=uuid</code></td><td>Filter by parent</td></tr>
     <tr><td><code>ownerId</code></td><td><code>?ownerId=uuid</code></td><td>Filter by owner</td></tr>
-    <tr><td><code>filter</code></td><td><code>?filter={"status":"done"}</code></td><td>JSON field filter</td></tr>
+    <tr><td><code>filter</code></td><td><code>?filter={"status":"done"}</code></td><td>JSON field filter (nested: <code>{"user.name":"John"}</code>)</td></tr>
     <tr><td><code>expand</code></td><td><code>?expand=parent,owner</code></td><td>Include related items</td></tr>
+    <tr><td><code>cascade</code></td><td><code>?cascade=true</code></td><td>Delete item and all descendants</td></tr>
   </tbody>
 </table>
 
