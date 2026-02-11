@@ -68,6 +68,9 @@ export async function initSchema(env = {}) {
     CREATE INDEX IF NOT EXISTS idx_items_tenant_collection
       ON items (tenant_id, collection);
 
+    CREATE INDEX IF NOT EXISTS idx_items_data_gin
+      ON items USING GIN (data);
+
     CREATE TABLE IF NOT EXISTS _users (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       tenant_id UUID NOT NULL REFERENCES tenants(id),

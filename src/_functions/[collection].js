@@ -29,8 +29,18 @@ export async function get(req) {
     try {
       const jsonFilter = JSON.parse(filter);
       Object.entries(jsonFilter).forEach(([key, value]) => {
-        params.push(key, value);
-        conditions.push(`data ->> $${params.length - 1} = $${params.length}`);
+        const parts = key.split('.');
+        if (parts.length === 1) {
+          // Top-level key: data ->> 'key'
+          params.push(key, value);
+          conditions.push(`data ->> $${params.length - 1} = $${params.length}`);
+        } else {
+          // Nested path: data #> ARRAY['part1','part2'] = '"value"'
+          parts.forEach(part => params.push(part));
+          params.push(JSON.stringify(value));
+          const arrayPlaceholders = parts.map((_, i) => `$${params.length - parts.length + i}`).join(',');
+          conditions.push(`data #> ARRAY[${arrayPlaceholders}] = $${params.length}`);
+        }
       });
     } catch {
       return { status: 400, body: { error: "Invalid JSON filter" } };
