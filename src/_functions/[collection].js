@@ -75,15 +75,60 @@ export async function post(req) {
   if (denied) return denied;
 
   const { collection } = req.params;
-  const { parentId, ownerId, orderKey, data = {} } = req.body || {};
+  const body = req.body;
   const sql = await getDb();
 
-  const [item] = await sql.unsafe(
+  // Detect bulk vs single
+  const isBulk = Array.isArray(body);
+  const items = isBulk ? body : [body];
+
+  // Validate bulk constraints
+  if (isBulk && items.length > 100) {
+    return { status: 400, body: { error: "Maximum 100 items allowed per bulk request" } };
+  }
+
+  // Validate each item has required 'data' field
+  for (let i = 0; i < items.length; i++) {
+    if (!items[i] || typeof items[i].data !== 'object') {
+      return { status: 400, body: { error: `Item ${i} must have a 'data' object` } };
+    }
+  }
+
+  // Build multi-row INSERT
+  if (items.length === 0) {
+    return { status: 400, body: { error: "No items to create" } };
+  }
+
+  const values = [];
+  const params = [];
+  let paramIndex = 1;
+
+  for (const item of items) {
+    const { parentId, ownerId, orderKey, data = {} } = item;
+    values.push(`($${paramIndex}, $${paramIndex + 1}, $${paramIndex + 2}, $${paramIndex + 3}, $${paramIndex + 4}, $${paramIndex + 5})`);
+    params.push(
+      auth.tenant_id,
+      collection,
+      parentId || null,
+      ownerId || null,
+      padOrderKey(orderKey),
+      data
+    );
+    paramIndex += 6;
+  }
+
+  const rows = await sql.unsafe(
     `INSERT INTO items (tenant_id, collection, parent_id, owner_id, order_key, data)
-     VALUES ($1, $2, $3, $4, $5, $6)
+     VALUES ${values.join(', ')}
      RETURNING *`,
-    [auth.tenant_id, collection, parentId || null, ownerId || null, padOrderKey(orderKey), data],
+    params
   );
 
-  return { status: 201, body: { data: flattenItem(item) } };
+  const results = rows.map(flattenItem);
+
+  if (isBulk) {
+    return { status: 201, body: { data: results, count: results.length } };
+  } else {
+    return { status: 201, body: { data: results[0] } };
+  }
 }

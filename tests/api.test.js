@@ -527,6 +527,61 @@ describe("Order Key Sorting", () => {
 });
 
 // ==========================================
+// BULK OPERATIONS TESTS
+// ==========================================
+
+describe("Bulk Operations", () => {
+  it("creates multiple items with bulk POST (201)", async () => {
+    const { status, json } = await api("POST", "/tasks", {
+      token: WRITE_TOKEN,
+      body: [
+        { data: { title: "Bulk Task 1", status: "pending" } },
+        { data: { title: "Bulk Task 2", status: "done" } },
+        { data: { title: "Bulk Task 3", status: "in_progress" } },
+      ],
+    });
+    expect(status).toBe(201);
+    expect(json.data).toHaveLength(3);
+    expect(json.count).toBe(3);
+    expect(json.data[0].title).toBe("Bulk Task 1");
+    expect(json.data[1].title).toBe("Bulk Task 2");
+    expect(json.data[2].title).toBe("Bulk Task 3");
+  });
+
+  it("rejects bulk POST exceeding 100 items (400)", async () => {
+    const items = Array(101).fill({ data: { title: "Task" } });
+    const { status, json } = await api("POST", "/tasks", {
+      token: WRITE_TOKEN,
+      body: items,
+    });
+    expect(status).toBe(400);
+    expect(json.error).toContain("Maximum 100 items");
+  });
+
+  it("rejects bulk POST with missing data field (400)", async () => {
+    const { status, json } = await api("POST", "/tasks", {
+      token: WRITE_TOKEN,
+      body: [
+        { data: { title: "Valid Task" } },
+        { title: "Missing data field" },
+      ],
+    });
+    expect(status).toBe(400);
+    expect(json.error).toContain("Item 1 must have a 'data' object");
+  });
+
+  it("preserves single-item POST behavior", async () => {
+    const { status, json } = await api("POST", "/tasks", {
+      token: WRITE_TOKEN,
+      body: { data: { title: "Single Task", status: "pending" } },
+    });
+    expect(status).toBe(201);
+    expect(json.data.title).toBe("Single Task");
+    expect(json.count).toBeUndefined(); // Single items don't have count
+  });
+});
+
+// ==========================================
 // MULTI-TENANT ISOLATION TESTS
 // ==========================================
 
