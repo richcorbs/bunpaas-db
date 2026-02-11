@@ -129,14 +129,51 @@ export async function del(req) {
   if (denied) return denied;
 
   const { collection, id } = req.params;
+  const { cascade } = req.query;
   const sql = await getDb();
 
-  const rows = await sql`
-    DELETE FROM items WHERE tenant_id = ${auth.tenant_id} AND collection = ${collection} AND id = ${id} RETURNING id
-  `;
+  // If cascade requested, find all descendants recursively
+  let idsToDelete = [id];
+
+  if (cascade) {
+    // Use CTE to find all descendants recursively
+    const descendantRows = await sql.unsafe(`
+      WITH RECURSIVE descendants AS (
+        -- Base case: direct children
+        SELECT id FROM items
+        WHERE tenant_id = $1 AND parent_id = $2
+
+        UNION ALL
+
+        -- Recursive case: children of children
+        SELECT i.id FROM items i
+        INNER JOIN descendants d ON i.parent_id = d.id
+        WHERE i.tenant_id = $1
+      )
+      SELECT id FROM descendants
+    `, [auth.tenant_id, id]);
+
+    idsToDelete = [id, ...descendantRows.map(r => r.id)];
+  }
+
+  // Delete all items
+  const rows = await sql.unsafe(`
+    DELETE FROM items
+    WHERE tenant_id = $1
+    AND id IN (${idsToDelete.map((_, i) => `$${i + 2}`).join(', ')})
+    RETURNING id
+  `, [auth.tenant_id, ...idsToDelete]);
 
   if (!rows.length) {
     return { status: 404, body: { error: "Item not found" } };
+  }
+
+  // If cascading, return 200 with count, otherwise 204
+  if (cascade) {
+    return {
+      status: 200,
+      body: { deleted: rows.length, ids: rows.map(r => r.id) }
+    };
   }
 
   return { status: 204, body: null };

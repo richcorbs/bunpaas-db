@@ -582,6 +582,143 @@ describe("Bulk Operations", () => {
 });
 
 // ==========================================
+// CASCADING DELETE TESTS
+// ==========================================
+
+describe("Cascading Delete", () => {
+  it("deletes single item without cascade (204)", async () => {
+    // Create parent and child
+    const parent = await api("POST", "/cascade-parents", {
+      token: WRITE_TOKEN,
+      body: { data: { name: "Parent" } },
+    });
+    const parentId = parent.json.data.id;
+
+    const { status } = await api("DELETE", `/cascade-parents/${parentId}`, {
+      token: WRITE_TOKEN,
+    });
+    expect(status).toBe(204);
+  });
+
+  it("cascades delete to children (200)", async () => {
+    // Create parent
+    const parent = await api("POST", "/cascade-parents", {
+      token: WRITE_TOKEN,
+      body: { data: { name: "Parent" } },
+    });
+    const parentId = parent.json.data.id;
+
+    // Create children in same collection
+    const child1 = await api("POST", "/cascade-parents", {
+      token: WRITE_TOKEN,
+      body: { parentId, data: { name: "Child 1" } },
+    });
+    const child2 = await api("POST", "/cascade-parents", {
+      token: WRITE_TOKEN,
+      body: { parentId, data: { name: "Child 2" } },
+    });
+
+    // Cascade delete parent
+    const { status, json } = await api(
+      "DELETE",
+      `/cascade-parents/${parentId}?cascade=true`,
+      { token: WRITE_TOKEN }
+    );
+
+    expect(status).toBe(200);
+    expect(json.deleted).toBe(3); // parent + 2 children
+    expect(json.ids).toContain(parentId);
+    expect(json.ids).toContain(child1.json.data.id);
+    expect(json.ids).toContain(child2.json.data.id);
+
+    // Verify children are gone
+    const checkChild = await api("GET", `/cascade-parents/${child1.json.data.id}`, {
+      token: READ_TOKEN,
+    });
+    expect(checkChild.status).toBe(404);
+  });
+
+  it("cascades delete across collections", async () => {
+    // Create parent in one collection
+    const parent = await api("POST", "/cascade-parents", {
+      token: WRITE_TOKEN,
+      body: { data: { name: "Cross-Collection Parent" } },
+    });
+    const parentId = parent.json.data.id;
+
+    // Create child in different collection
+    const child = await api("POST", "/cascade-children", {
+      token: WRITE_TOKEN,
+      body: { parentId, data: { name: "Cross-Collection Child" } },
+    });
+
+    // Cascade delete parent
+    const { status, json } = await api(
+      "DELETE",
+      `/cascade-parents/${parentId}?cascade=true`,
+      { token: WRITE_TOKEN }
+    );
+
+    expect(status).toBe(200);
+    expect(json.deleted).toBe(2);
+
+    // Verify child in different collection is also deleted
+    const checkChild = await api("GET", `/cascade-children/${child.json.data.id}`, {
+      token: READ_TOKEN,
+    });
+    expect(checkChild.status).toBe(404);
+  });
+
+  it("cascades delete recursively (deep nesting)", async () => {
+    // Create nested hierarchy: grandparent -> parent -> child
+    const grandparent = await api("POST", "/cascade-test", {
+      token: WRITE_TOKEN,
+      body: { data: { name: "Grandparent" } },
+    });
+    const gpId = grandparent.json.data.id;
+
+    const parent = await api("POST", "/cascade-test", {
+      token: WRITE_TOKEN,
+      body: { parentId: gpId, data: { name: "Parent" } },
+    });
+    const pId = parent.json.data.id;
+
+    const child = await api("POST", "/cascade-test", {
+      token: WRITE_TOKEN,
+      body: { parentId: pId, data: { name: "Child" } },
+    });
+
+    // Cascade delete grandparent
+    const { status, json } = await api(
+      "DELETE",
+      `/cascade-test/${gpId}?cascade=true`,
+      { token: WRITE_TOKEN }
+    );
+
+    expect(status).toBe(200);
+    expect(json.deleted).toBe(3);
+  });
+
+  it("handles cascade on item with no children", async () => {
+    const item = await api("POST", "/cascade-test", {
+      token: WRITE_TOKEN,
+      body: { data: { name: "Orphan" } },
+    });
+    const itemId = item.json.data.id;
+
+    const { status, json } = await api(
+      "DELETE",
+      `/cascade-test/${itemId}?cascade=true`,
+      { token: WRITE_TOKEN }
+    );
+
+    expect(status).toBe(200);
+    expect(json.deleted).toBe(1);
+    expect(json.ids).toEqual([itemId]);
+  });
+});
+
+// ==========================================
 // MULTI-TENANT ISOLATION TESTS
 // ==========================================
 
