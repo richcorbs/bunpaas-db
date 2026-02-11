@@ -4,5 +4,10 @@
     "development": "bunpaas-db.localhost"
   },
   "platform": true,
-  "maxUpload": "0MB"
+  "maxUpload": "0MB",
+  "cors": {
+    "origins": ["*"],
+    "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    "headers": ["Content-Type", "Authorization"]
+  }
 }
